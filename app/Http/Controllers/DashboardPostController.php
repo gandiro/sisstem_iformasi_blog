@@ -42,12 +42,18 @@ class DashboardPostController extends Controller
      */
     public function store(Request $request)
     {
+
         $validatedData = $request->validate([
             'title' => 'required|max:255',
             'slug'=> 'unique:posts',
             'category_id' => 'required',
+            'image' => 'image|file|max:1024',
             'body' => 'required'
         ]);
+
+        if($request->file('image')) {
+            $validatedData['image'] = $request->file('image')->store('post-images');
+        }
         $validatedData['user_id'] = auth()->user()->id;
         $validatedData['excerpt'] = Str::limit(strip_tags($request->body), 100);
 
@@ -77,7 +83,10 @@ class DashboardPostController extends Controller
      */
     public function edit(Post $post)
     {
-        //
+        return view('dashboard/posts/edit', [
+            'post' => $post,
+            'categories' => Category::all()
+        ]);
     }
 
     /**
@@ -89,7 +98,19 @@ class DashboardPostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
-        //
+         $validatedData = $request->validate([
+            'title' => 'required|max:255',
+            'slug'=> 'unique:posts',
+            'category_id' => 'required',
+            'body' => 'required'
+        ]);
+        $validatedData['user_id'] = auth()->user()->id;
+        $validatedData['excerpt'] = Str::limit(strip_tags($request->body), 100);
+
+        Post::where('id', $post->id)
+                ->update($validatedData);
+
+        return redirect('/dashboard/posts')->with('success', 'Post has been updated');
     }
 
     /**
@@ -100,7 +121,9 @@ class DashboardPostController extends Controller
      */
     public function destroy(Post $post)
     {
-        //
+        Post::destroy($post->id);
+
+        return redirect('/dashboard/posts')->with('success', 'Post has been deleted');
     }
 
     public function checkSlug(Request $request)
